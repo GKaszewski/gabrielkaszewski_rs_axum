@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gabriel Kaszewski</title>
+    <link rel="stylesheet" href="/assets/css/main.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+  </head>
+
+  <body class="bg-gray-800">
+    <div class="flex flex-col h-full min-h-screen text-white">
+      {% include "components/navbar.html" %}
+      <div
+        class="flex flex-col items-center justify-center w-full h-full gap-4"
+      >
+        {% block content %} {% endblock content %}
+      </div>
+      <span class="flex-1"></span>
+      {% include "components/footer.html" %}
+    </div>
+  </body>
+</html>

@@ -1,0 +1,2 @@
+[default.databases.gabrielkaszewski_rs]
+url = "postgres://postgres:postgres@localhost:5432/gabrielkaszewski_rs"

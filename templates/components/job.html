@@ -1,0 +1,24 @@
+<div class="flex flex-col gap-2 p-4 text-black bg-gray-100 rounded-lg">
+  <h4 class="text-2xl">
+    <span class="fas fa-user-circle"></span> {{ job.position }}
+  </h4>
+  <h5 class="text-xl font-light">
+    <span class="fas fa-building"></span> {{ job.company }}
+  </h5>
+  {% if job.still_working %}
+  <h6>
+    <span class="fas fa-clock"></span> {{ job.start_date | date:"d-m-Y" }} -
+    Present
+  </h6>
+  {% else %}
+  <h6>
+    <span class="fas fa-clock"></span> {{ job.start_date | date:"d-m-Y" }} - {{
+    job.end_date | date:"d-m-Y" }}
+  </h6>
+  {% endif %}
+  <p class="font-bold"><span class="fas fa-microchip"></span> Technologies</p>
+  <div class="flex flex-wrap gap-2">
+    {% for technology in job.technologies %} {% include "components/chip.html"
+    with label=technology %} {% endfor %}
+  </div>
+</div>
