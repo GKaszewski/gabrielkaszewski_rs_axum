@@ -23,13 +23,11 @@ fn rocket() -> _ {
         .attach(AppDatabase::init())
         .attach(AdHoc::try_on_ignite("DB Migrations", run_migrations))
         .mount("/assets", FileServer::from("assets"))
+        .mount("/auth", auth::router::routes())
         .mount(
             "/",
             routes![
                 web::handlers::index,
-                auth::handlers::create_user,
-                auth::handlers::get_users,
-                auth::handlers::login,
             ],
         )
 }

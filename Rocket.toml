@@ -1,2 +1,5 @@
 [default.databases.gabrielkaszewski_rs]
 url = "postgres://postgres:postgres@localhost:5432/gabrielkaszewski_rs"
+
+[development]
+secret_key = "secret_key_pls_change_me"

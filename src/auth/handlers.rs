@@ -1,4 +1,5 @@
 use rocket::get;
+use rocket::http::CookieJar;
 use rocket::response::status::Custom;
 use rocket::serde::json::Json;
 use rocket::{http::Status, post};
@@ -7,14 +8,16 @@ use rocket_db_pools::Connection;
 use crate::auth::models::LoginData;
 use crate::db::AppDatabase;
 
+use super::guards::{AdminGuard, AuthGuard};
 use super::{
     errors::UserError,
     models::{UserData, UserRead},
     service::{self, save_user},
 };
 
-#[post("/auth/users", data = "<user_data>")]
+#[post("/users", data = "<user_data>")]
 pub async fn create_user(
+    _auth_guard: AdminGuard,
     user_data: Json<UserData<'_>>,
     db: Connection<AppDatabase>,
 ) -> Result<Json<UserRead>, Custom<&'static str>> {
@@ -38,7 +41,7 @@ pub async fn create_user(
     }
 }
 
-#[get("/auth/users")]
+#[get("/users")]
 pub async fn get_users(
     db: Connection<AppDatabase>,
 ) -> Result<Json<Vec<UserRead>>, Custom<&'static str>> {
@@ -61,10 +64,38 @@ pub async fn get_users(
     }
 }
 
-#[post("/auth/login", data = "<user_data>")]
-pub async fn login(user_data: Json<LoginData>, db: Connection<AppDatabase>) -> Status {
-    match service::login(user_data.0, db).await {
+#[post("/login", data = "<user_data>")]
+pub async fn login<'r>(user_data: Json<LoginData>, db: Connection<AppDatabase>, cookie_jar: &'r CookieJar<'_>) -> Status {
+    match service::login(user_data.0, db, cookie_jar).await {
         Ok(_) => Status::Ok,
-        Err(_) => Status::Unauthorized,
+        Err(_) => Status::NotFound,
     }
+}
+
+#[post("/logout")]
+pub fn logout<'r>(cookie_jar: &'r CookieJar<'_>) -> Status {
+    service::logout(cookie_jar);
+    Status::Ok
+}
+
+#[get("/me")]
+pub async fn me(auth: AuthGuard) -> Json<UserRead> {
+    Json(UserRead {
+        id: auth.0.id,
+        username: auth.0.username,
+        is_superuser: auth.0.is_superuser,
+        created_at: auth.0.created_at,
+        updated_at: auth.0.updated_at,
+    })
+}
+
+#[get("/admin")]
+pub async fn admin(auth: AdminGuard) -> Json<UserRead> {
+    Json(UserRead {
+        id: auth.0.id,
+        username: auth.0.username,
+        is_superuser: auth.0.is_superuser,
+        created_at: auth.0.created_at,
+        updated_at: auth.0.updated_at,
+    })  
 }

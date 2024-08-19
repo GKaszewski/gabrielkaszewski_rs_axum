@@ -7,9 +7,19 @@ pub enum UserError {
     NotFound,
 }
 
+pub enum JWTError {
+    FailedToCreateToken,
+    FailedToDecodeToken,
+}
+
 #[derive(Debug)]
 pub enum AuthError {
     FailedToVerifyPassword,
     FailedToHashPassword,
-    UserNotFound
+    UserNotFound,
+    FailedToGenerateToken,
+    FailedToAuthorize,
+    NoAuthTokenCookie,
+    Unauthorized,
+    Forbidden,
 }
