@@ -1,18 +1,19 @@
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHashString,                   SaltString},
+    password_hash::{rand_core::OsRng, PasswordHashString, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
 };
 use hmac::{Hmac, Mac};
 use jwt::{RegisteredClaims, SignWithKey, VerifyWithKey};
-use rocket_db_pools::Connection;
 use rocket::http::CookieJar;
+use rocket_db_pools::Connection;
 use sha2::Sha512;
 
 use crate::db::AppDatabase;
 
 use super::{
     errors::{AuthError, JWTError, UserError},
-    models::{LoginData, User, UserData, UserRead}, utils::parse_duration_from_string,
+    models::{LoginData, User, UserData, UserRead},
+    utils::parse_duration_from_string,
 };
 
 pub struct UserBuilder {
@@ -106,11 +107,14 @@ pub fn verify_password(hashed_password: &PasswordHash, password: String) -> Resu
 
 pub fn generate_jwt_token(user: User) -> Result<String, JWTError> {
     let key = std::env::var("JWT_SECRET").unwrap_or_else(|_| "secret".to_string());
-    let encrypted_key: Hmac::<Sha512> = Hmac::new_from_slice(key.as_bytes()).map_err(|_| JWTError::FailedToCreateToken)?;
+    let encrypted_key: Hmac<Sha512> =
+        Hmac::new_from_slice(key.as_bytes()).map_err(|_| JWTError::FailedToCreateToken)?;
     let expiration_string = parse_duration_from_string(
         std::env::var("JWT_EXPIRATION")
-        .unwrap_or_else(|_| "1d".to_string()).as_str()
-    ).map_err(|_| JWTError::FailedToCreateToken)?;
+            .unwrap_or_else(|_| "1d".to_string())
+            .as_str(),
+    )
+    .map_err(|_| JWTError::FailedToCreateToken)?;
 
     let expiration = chrono::Utc::now() + expiration_string;
     let claims = RegisteredClaims {
@@ -122,7 +126,9 @@ pub fn generate_jwt_token(user: User) -> Result<String, JWTError> {
         ..Default::default()
     };
 
-    let token_string = claims.sign_with_key(&encrypted_key).map_err(|_| JWTError::FailedToCreateToken)?;
+    let token_string = claims
+        .sign_with_key(&encrypted_key)
+        .map_err(|_| JWTError::FailedToCreateToken)?;
 
     Ok(token_string)
 }
@@ -153,7 +159,7 @@ pub async fn save_user(user: User, mut db: Connection<AppDatabase>) -> Result<Us
         VALUES ($1, $2, $3, $4, $5)
         "#,
         user.username,
-        user.password,      
+        user.password,
         user.is_superuser,
         user.created_at,
         user.updated_at
@@ -208,7 +214,11 @@ pub async fn get_user_by_username(
     Ok(user)
 }
 
-pub async fn login<'r>(user_data: LoginData, db: Connection<AppDatabase>, cookie_jar: &'r CookieJar<'_>) -> Result<(), AuthError> {
+pub async fn login<'r>(
+    user_data: LoginData,
+    db: Connection<AppDatabase>,
+    cookie_jar: &'r CookieJar<'_>,
+) -> Result<(), AuthError> {
     let username = user_data.username;
     let password = user_data.password;
 
@@ -228,18 +238,30 @@ pub async fn login<'r>(user_data: LoginData, db: Connection<AppDatabase>, cookie
     Ok(())
 }
 
-pub fn logout<'r>(cookie_jar: &'r CookieJar<'_>) {
+pub fn logout<'r>(cookie_jar: &CookieJar<'_>) {
     cookie_jar.remove_private("auth_token");
 }
 
-    pub async fn authorize_user<'r>(cookie_jar: &'r CookieJar<'_>, db: Connection<AppDatabase>) -> Result<User, AuthError> {
-        let key = std::env::var("JWT_SECRET").unwrap_or_else(|_| "secret".to_string());
-        let encrypted_key: Hmac::<Sha512> = Hmac::new_from_slice(key.as_bytes()).map_err(|_| AuthError::FailedToAuthorize)?;
-        let token = cookie_jar.get_private("auth_token").ok_or(AuthError::NoAuthTokenCookie)?.value().to_string();
-        let claims: RegisteredClaims = token.verify_with_key(&encrypted_key).map_err(|_| AuthError::FailedToAuthorize)?;
+pub async fn authorize_user<'r>(
+    cookie_jar: &'r CookieJar<'_>,
+    db: Connection<AppDatabase>,
+) -> Result<User, AuthError> {
+    let key = std::env::var("JWT_SECRET").unwrap_or_else(|_| "secret".to_string());
+    let encrypted_key: Hmac<Sha512> =
+        Hmac::new_from_slice(key.as_bytes()).map_err(|_| AuthError::FailedToAuthorize)?;
+    let token = cookie_jar
+        .get_private("auth_token")
+        .ok_or(AuthError::NoAuthTokenCookie)?
+        .value()
+        .to_string();
+    let claims: RegisteredClaims = token
+        .verify_with_key(&encrypted_key)
+        .map_err(|_| AuthError::FailedToAuthorize)?;
 
-        let username = claims.subject.ok_or(AuthError::FailedToAuthorize)?;
-        let user = get_user_by_username(&username, db).await.map_err(|_| AuthError::FailedToAuthorize)?;
+    let username = claims.subject.ok_or(AuthError::FailedToAuthorize)?;
+    let user = get_user_by_username(&username, db)
+        .await
+        .map_err(|_| AuthError::FailedToAuthorize)?;
 
-        Ok(user)
-    }
+    Ok(user)
+}
