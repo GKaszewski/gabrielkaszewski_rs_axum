@@ -110,13 +110,14 @@ pub fn generate_jwt_token(user: User) -> Result<String, JWTError> {
     let encrypted_key: Hmac<Sha512> =
         Hmac::new_from_slice(key.as_bytes()).map_err(|_| JWTError::FailedToCreateToken)?;
     let expiration_string = parse_duration_from_string(
-        std::env::var("JWT_EXPIRATION")
+        std::env::var("JWT_EXPIRES_IN")
             .unwrap_or_else(|_| "1d".to_string())
             .as_str(),
     )
     .map_err(|_| JWTError::FailedToCreateToken)?;
 
     let expiration = chrono::Utc::now() + expiration_string;
+
     let claims = RegisteredClaims {
         issuer: Some("gabrielkaszewski-auth".to_string()),
         subject: Some(user.username),
@@ -257,6 +258,16 @@ pub async fn authorize_user<'r>(
     let claims: RegisteredClaims = token
         .verify_with_key(&encrypted_key)
         .map_err(|_| AuthError::FailedToAuthorize)?;
+
+    if let Some(expiration) = claims.expiration {
+        if expiration < chrono::Utc::now().timestamp() as u64 {
+            return Err(AuthError::Unauthorized);
+        }
+    }
+
+    if claims.expiration.is_none() {
+        return Err(AuthError::FailedToAuthorize);
+    }
 
     let username = claims.subject.ok_or(AuthError::FailedToAuthorize)?;
     let user = get_user_by_username(&username, db)

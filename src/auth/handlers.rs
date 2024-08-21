@@ -44,6 +44,7 @@ pub async fn create_user(
 #[get("/users")]
 pub async fn get_users(
     db: Connection<AppDatabase>,
+    _admin_guard: AdminGuard,
 ) -> Result<Json<Vec<UserRead>>, Custom<&'static str>> {
     let users = service::get_users(db).await;
 
@@ -65,7 +66,11 @@ pub async fn get_users(
 }
 
 #[post("/login", data = "<user_data>")]
-pub async fn login<'r>(user_data: Json<LoginData>, db: Connection<AppDatabase>, cookie_jar: &'r CookieJar<'_>) -> Status {
+pub async fn login<'r>(
+    user_data: Json<LoginData>,
+    db: Connection<AppDatabase>,
+    cookie_jar: &'r CookieJar<'_>,
+) -> Status {
     match service::login(user_data.0, db, cookie_jar).await {
         Ok(_) => Status::Ok,
         Err(_) => Status::NotFound,
@@ -97,5 +102,5 @@ pub async fn admin(auth: AdminGuard) -> Json<UserRead> {
         is_superuser: auth.0.is_superuser,
         created_at: auth.0.created_at,
         updated_at: auth.0.updated_at,
-    })  
+    })
 }

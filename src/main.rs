@@ -1,4 +1,4 @@
-// use dotenv::dotenv;
+use dotenv::dotenv;
 // use sqlx::postgres::{PgPool, PgPoolOptions};
 // use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -19,15 +19,11 @@ mod work_experience;
 
 #[launch]
 fn rocket() -> _ {
+    dotenv().ok();
     rocket::build()
         .attach(AppDatabase::init())
         .attach(AdHoc::try_on_ignite("DB Migrations", run_migrations))
         .mount("/assets", FileServer::from("assets"))
         .mount("/auth", auth::router::routes())
-        .mount(
-            "/",
-            routes![
-                web::handlers::index,
-            ],
-        )
+        .mount("/", routes![web::handlers::index,])
 }
